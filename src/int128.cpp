@@ -25,7 +25,7 @@
 
 namespace absl {
 
-ABSL_DLL const uint128_t kuint128_tmax = MakeUint128_t(
+ABSL_DLL const uint128_t kuint128_tmax = MakeUint128(
     std::numeric_limits<uint64_t>::max(), std::numeric_limits<uint64_t>::max());
 
 namespace {
@@ -95,17 +95,17 @@ ABSL_ATTRIBUTE_ALWAYS_INLINE int CountLeadingZeros64(uint64_t n) {
 //   Given: 5 (decimal) == 101 (binary)
 //   Returns: 2
 inline ABSL_ATTRIBUTE_ALWAYS_INLINE int Fls128(uint128_t n) {
-  if (uint64_t hi = Uint128_tHigh64(n)) {
+  if (uint64_t hi = Uint128High64(n)) {
     ABSL_INTERNAL_ASSUME(hi != 0);
     return 127 - CountLeadingZeros64(hi);
   }
-  const uint64_t low = Uint128_tLow64(n);
+  const uint64_t low = Uint128Low64(n);
   ABSL_INTERNAL_ASSUME(low != 0);
   return 63 - CountLeadingZeros64(low);
 }
 
 template <typename T>
-uint128_t MakeUint128_tFromFloat(T v) {
+uint128_t MakeUint128FromFloat(T v) {
   static_assert(std::is_floating_point<T>::value, "");
 
   // Rounding behavior is towards zero, same as for built-in types.
@@ -118,17 +118,17 @@ uint128_t MakeUint128_tFromFloat(T v) {
   if (v >= std::ldexp(static_cast<T>(1), 64)) {
     uint64_t hi = static_cast<uint64_t>(std::ldexp(v, -64));
     uint64_t lo = static_cast<uint64_t>(v - std::ldexp(static_cast<T>(hi), 64));
-    return MakeUint128_t(hi, lo);
+    return MakeUint128(hi, lo);
   }
 
-  return MakeUint128_t(0, static_cast<uint64_t>(v));
+  return MakeUint128(0, static_cast<uint64_t>(v));
 }
 
 #if defined(__clang__) && !defined(__SSE3__)
 // Workaround for clang bug: https://bugs.llvm.org/show_bug.cgi?id=38289
 // Casting from long double to uint64_t is miscompiled and drops bits.
 // It is more work, so only use when we need the workaround.
-uint128_t MakeUint128_tFromFloat(long double v) {
+uint128_t MakeUint128FromFloat(long double v) {
   // Go 50 bits at a time, that fits in a double
   static_assert(std::numeric_limits<double>::digits >= 50, "");
   static_assert(std::numeric_limits<long double>::digits <= 150, "");
@@ -147,9 +147,9 @@ uint128_t MakeUint128_tFromFloat(long double v) {
 #endif  // __clang__ && !__SSE3__
 }  // namespace
 
-uint128_t::uint128_t(float v) : uint128_t(MakeUint128_tFromFloat(v)) {}
-uint128_t::uint128_t(double v) : uint128_t(MakeUint128_tFromFloat(v)) {}
-uint128_t::uint128_t(long double v) : uint128_t(MakeUint128_tFromFloat(v)) {}
+uint128_t::uint128_t(float v) : uint128_t(MakeUint128FromFloat(v)) {}
+uint128_t::uint128_t(double v) : uint128_t(MakeUint128FromFloat(v)) {}
+uint128_t::uint128_t(long double v) : uint128_t(MakeUint128FromFloat(v)) {}
 
 // Long division/modulo for uint128_t implemented using the shift-subtract
 // division algorithm adapted from:
@@ -246,16 +246,16 @@ std::string uint128_t::ToFormattedString(uint128_t v, std::ios_base::fmtflags fl
   uint128_t::DivMod(high, div, &high, &low);
   uint128_t mid;
   uint128_t::DivMod(high, div, &high, &mid);
-  if (Uint128_tLow64(high) != 0) {
-    os << Uint128_tLow64(high);
+  if (Uint128Low64(high) != 0) {
+    os << Uint128Low64(high);
     os << std::noshowbase << std::setfill('0') << std::setw(div_base_log);
-    os << Uint128_tLow64(mid);
+    os << Uint128Low64(mid);
     os << std::setw(div_base_log);
-  } else if (Uint128_tLow64(mid) != 0) {
-    os << Uint128_tLow64(mid);
+  } else if (Uint128Low64(mid) != 0) {
+    os << Uint128Low64(mid);
     os << std::noshowbase << std::setfill('0') << std::setw(div_base_log);
   }
-  os << Uint128_tLow64(low);
+  os << Uint128Low64(low);
   return os.str();
 }
 
@@ -309,9 +309,9 @@ int128_t MakeInt128FromFloat(T v) {
   // floating point types are typically sign-magnitude. Otherwise, the
   // difference between the high and low 64 bits when interpreted as two's
   // complement overwhelms the precision of the mantissa.
-  uint128_t result = v < 0 ? -MakeUint128_tFromFloat(-v) : MakeUint128_tFromFloat(v);
-  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(result)),
-                    Uint128_tLow64(result));
+  uint128_t result = v < 0 ? -MakeUint128FromFloat(-v) : MakeUint128FromFloat(v);
+  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(result)),
+                    Uint128Low64(result));
 }
 
 }  // namespace
@@ -329,11 +329,11 @@ void int128_t::DivMod(int128_t dividend, int128_t divisor, int128_t* quotient_re
   uint128_t::DivMod(UnsignedAbsoluteValue(dividend), UnsignedAbsoluteValue(divisor),
              &quotient, &remainder);
   if ((Int128High64(dividend) < 0) != (Int128High64(divisor) < 0)) quotient = -quotient;
-  *quotient_ret = MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(quotient)),
-                             Uint128_tLow64(quotient));
+  *quotient_ret = MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(quotient)),
+                             Uint128Low64(quotient));
   if (Int128High64(dividend) < 0) remainder = -remainder;
-  *remainder_ret = MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(remainder)),
-                              Uint128_tLow64(remainder));
+  *remainder_ret = MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(remainder)),
+                              Uint128Low64(remainder));
 }
 
 int128_t operator/(int128_t lhs, int128_t rhs) {
@@ -344,8 +344,8 @@ int128_t operator/(int128_t lhs, int128_t rhs) {
   uint128_t::DivMod(UnsignedAbsoluteValue(lhs), UnsignedAbsoluteValue(rhs),
              &quotient, &remainder);
   if ((Int128High64(lhs) < 0) != (Int128High64(rhs) < 0)) quotient = -quotient;
-  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(quotient)),
-                    Uint128_tLow64(quotient));
+  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(quotient)),
+                    Uint128Low64(quotient));
 }
 
 int128_t operator%(int128_t lhs, int128_t rhs) {
@@ -356,8 +356,8 @@ int128_t operator%(int128_t lhs, int128_t rhs) {
   uint128_t::DivMod(UnsignedAbsoluteValue(lhs), UnsignedAbsoluteValue(rhs),
              &quotient, &remainder);
   if (Int128High64(lhs) < 0) remainder = -remainder;
-  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(remainder)),
-                    Uint128_tLow64(remainder));
+  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(remainder)),
+                    Uint128Low64(remainder));
 }
 #endif  // ABSL_HAVE_INTRINSIC_INT128
 

@@ -40,7 +40,7 @@ constexpr int128_t::int128_t(unsigned long v) : lo_{v}, hi_{0} {}
 constexpr int128_t::int128_t(unsigned long long v) : lo_{v}, hi_{0} {}
 
 constexpr int128_t::int128_t(uint128_t v)
-    : lo_{Uint128_tLow64(v)}, hi_{static_cast<int64_t>(Uint128_tHigh64(v))} {}
+    : lo_{Uint128Low64(v)}, hi_{static_cast<int64_t>(Uint128High64(v))} {}
 
 #elif defined(ABSL_IS_BIG_ENDIAN)
 
@@ -61,7 +61,7 @@ constexpr int128_t::int128_t(unsigned long v) : hi_{0}, lo_{v} {}
 constexpr int128_t::int128_t(unsigned long long v) : hi_{0}, lo_{v} {}
 
 constexpr int128_t::int128_t(uint128_t v)
-    : hi_{static_cast<int64_t>(Uint128_tHigh64(v))}, lo_{Uint128_tLow64(v)} {}
+    : hi_{static_cast<int64_t>(Uint128High64(v))}, lo_{Uint128Low64(v)} {}
 
 #else  // byte order
 #error "Unsupported byte order: must be little-endian or big-endian."
@@ -237,8 +237,8 @@ inline int128_t operator-(int128_t lhs, int128_t rhs) {
 
 inline int128_t operator*(int128_t lhs, int128_t rhs) {
   uint128_t result = uint128_t(lhs) * rhs;
-  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128_tHigh64(result)),
-                    Uint128_tLow64(result));
+  return MakeInt128(int128_t_internal::BitCastToSigned(Uint128High64(result)),
+                    Uint128Low64(result));
 }
 
 inline int128_t int128_t::operator++(int) {

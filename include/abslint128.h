@@ -117,7 +117,7 @@ class int128_t;
 //
 // Note: code written with this type will continue to compile once `uint128_t_t`
 // is introduced, provided the replacement helper functions
-// `Uint128_t(Low|High)64()` and `MakeUint128_t()` are made.
+// `Uint128(Low|High)64()` and `MakeUint128()` are made.
 //
 // A `uint128_t` supports the following:
 //
@@ -143,7 +143,7 @@ class int128_t;
 //
 // Example:
 //
-//     float y = absl::Uint128_tMax();  // Error. uint128_t cannot be implicitly
+//     float y = absl::Uint128Max();  // Error. uint128_t cannot be implicitly
 //                                    // converted to float.
 //
 //     absl::uint128_t v;
@@ -234,15 +234,15 @@ class
   uint128_t& operator++();
   uint128_t& operator--();
 
-  // Uint128_tLow64()
+  // Uint128Low64()
   //
   // Returns the lower 64-bit value of a `uint128_t` value.
-  friend constexpr uint64_t Uint128_tLow64(uint128_t v);
+  friend constexpr uint64_t Uint128Low64(uint128_t v);
 
-  // Uint128_tHigh64()
+  // Uint128High64()
   //
   // Returns the higher 64-bit value of a `uint128_t` value.
-  friend constexpr uint64_t Uint128_tHigh64(uint128_t v);
+  friend constexpr uint64_t Uint128High64(uint128_t v);
 
   // MakeUInt128()
   //
@@ -252,18 +252,18 @@ class
   //
   // Example:
   //
-  //   absl::uint128_t big = absl::MakeUint128_t(1, 0);
-  friend constexpr uint128_t MakeUint128_t(uint64_t high, uint64_t low);
+  //   absl::uint128_t big = absl::MakeUint128(1, 0);
+  friend constexpr uint128_t MakeUint128(uint64_t high, uint64_t low);
 
-  // Uint128_tMax()
+  // Uint128Max()
   //
   // Returns the highest value for a 128-bit unsigned integer.
-  friend constexpr uint128_t Uint128_tMax();
+  friend constexpr uint128_t Uint128Max();
 
   // Support for absl::Hash.
   template <typename H>
   friend H AbslHashValue(H h, uint128_t v) {
-    return H::combine(std::move(h), Uint128_tHigh64(v), Uint128_tLow64(v));
+    return H::combine(std::move(h), Uint128High64(v), Uint128Low64(v));
   }
 
   // Combined division/modulo for a 128-bit unsigned integer.
@@ -297,7 +297,7 @@ std::ostream& operator<<(std::ostream& os, uint128_t v);
 
 // TODO(strel) add operator>>(std::istream&, uint128_t)
 
-constexpr uint128_t Uint128_tMax() {
+constexpr uint128_t Uint128Max() {
   return uint128_t((std::numeric_limits<uint64_t>::max)(),
                  (std::numeric_limits<uint64_t>::max)());
 }
@@ -339,7 +339,7 @@ class numeric_limits<absl::uint128_t> {
 
   static constexpr absl::uint128_t (min)() { return 0; }
   static constexpr absl::uint128_t lowest() { return 0; }
-  static constexpr absl::uint128_t (max)() { return absl::Uint128_tMax(); }
+  static constexpr absl::uint128_t (max)() { return absl::Uint128Max(); }
   static constexpr absl::uint128_t epsilon() { return 0; }
   static constexpr absl::uint128_t round_error() { return 0; }
   static constexpr absl::uint128_t infinity() { return 0; }
@@ -595,7 +595,7 @@ class numeric_limits<absl::int128_t> {
 // --------------------------------------------------------------------------
 namespace absl {
 
-constexpr uint128_t MakeUint128_t(uint64_t high, uint64_t low) {
+constexpr uint128_t MakeUint128(uint64_t high, uint64_t low) {
   return uint128_t(high, low);
 }
 
@@ -685,9 +685,9 @@ inline uint128_t& uint128_t::operator%=(uint128_t other) {
   return *this;
 }
 
-constexpr uint64_t Uint128_tLow64(uint128_t v) { return v.lo_; }
+constexpr uint64_t Uint128Low64(uint128_t v) { return v.lo_; }
 
-constexpr uint64_t Uint128_tHigh64(uint128_t v) { return v.hi_; }
+constexpr uint64_t Uint128High64(uint128_t v) { return v.hi_; }
 
 // Constructors from integer types.
 
@@ -843,8 +843,8 @@ inline uint128_t::operator long double() const {
 // Comparison operators.
 
 inline bool operator==(uint128_t lhs, uint128_t rhs) {
-  return (Uint128_tLow64(lhs) == Uint128_tLow64(rhs) &&
-          Uint128_tHigh64(lhs) == Uint128_tHigh64(rhs));
+  return (Uint128Low64(lhs) == Uint128Low64(rhs) &&
+          Uint128High64(lhs) == Uint128High64(rhs));
 }
 
 inline bool operator!=(uint128_t lhs, uint128_t rhs) {
@@ -856,9 +856,9 @@ inline bool operator<(uint128_t lhs, uint128_t rhs) {
   return static_cast<unsigned __int128_t>(lhs) <
          static_cast<unsigned __int128_t>(rhs);
 #else
-  return (Uint128_tHigh64(lhs) == Uint128_tHigh64(rhs))
-             ? (Uint128_tLow64(lhs) < Uint128_tLow64(rhs))
-             : (Uint128_tHigh64(lhs) < Uint128_tHigh64(rhs));
+  return (Uint128High64(lhs) == Uint128High64(rhs))
+             ? (Uint128Low64(lhs) < Uint128Low64(rhs))
+             : (Uint128High64(lhs) < Uint128High64(rhs));
 #endif
 }
 
@@ -871,35 +871,35 @@ inline bool operator>=(uint128_t lhs, uint128_t rhs) { return !(lhs < rhs); }
 // Unary operators.
 
 inline uint128_t operator-(uint128_t val) {
-  uint64_t hi = ~Uint128_tHigh64(val);
-  uint64_t lo = ~Uint128_tLow64(val) + 1;
+  uint64_t hi = ~Uint128High64(val);
+  uint64_t lo = ~Uint128Low64(val) + 1;
   if (lo == 0) ++hi;  // carry
-  return MakeUint128_t(hi, lo);
+  return MakeUint128(hi, lo);
 }
 
 inline bool operator!(uint128_t val) {
-  return !Uint128_tHigh64(val) && !Uint128_tLow64(val);
+  return !Uint128High64(val) && !Uint128Low64(val);
 }
 
 // Logical operators.
 
 inline uint128_t operator~(uint128_t val) {
-  return MakeUint128_t(~Uint128_tHigh64(val), ~Uint128_tLow64(val));
+  return MakeUint128(~Uint128High64(val), ~Uint128Low64(val));
 }
 
 inline uint128_t operator|(uint128_t lhs, uint128_t rhs) {
-  return MakeUint128_t(Uint128_tHigh64(lhs) | Uint128_tHigh64(rhs),
-                           Uint128_tLow64(lhs) | Uint128_tLow64(rhs));
+  return MakeUint128(Uint128High64(lhs) | Uint128High64(rhs),
+                           Uint128Low64(lhs) | Uint128Low64(rhs));
 }
 
 inline uint128_t operator&(uint128_t lhs, uint128_t rhs) {
-  return MakeUint128_t(Uint128_tHigh64(lhs) & Uint128_tHigh64(rhs),
-                           Uint128_tLow64(lhs) & Uint128_tLow64(rhs));
+  return MakeUint128(Uint128High64(lhs) & Uint128High64(rhs),
+                           Uint128Low64(lhs) & Uint128Low64(rhs));
 }
 
 inline uint128_t operator^(uint128_t lhs, uint128_t rhs) {
-  return MakeUint128_t(Uint128_tHigh64(lhs) ^ Uint128_tHigh64(rhs),
-                           Uint128_tLow64(lhs) ^ Uint128_tLow64(rhs));
+  return MakeUint128(Uint128High64(lhs) ^ Uint128High64(rhs),
+                           Uint128Low64(lhs) ^ Uint128Low64(rhs));
 }
 
 inline uint128_t& uint128_t::operator|=(uint128_t other) {
@@ -930,13 +930,13 @@ inline uint128_t operator<<(uint128_t lhs, int amount) {
   // special-casing.
   if (amount < 64) {
     if (amount != 0) {
-      return MakeUint128_t(
-          (Uint128_tHigh64(lhs) << amount) | (Uint128_tLow64(lhs) >> (64 - amount)),
-          Uint128_tLow64(lhs) << amount);
+      return MakeUint128(
+          (Uint128High64(lhs) << amount) | (Uint128Low64(lhs) >> (64 - amount)),
+          Uint128Low64(lhs) << amount);
     }
     return lhs;
   }
-  return MakeUint128_t(Uint128_tLow64(lhs) << (amount - 64), 0);
+  return MakeUint128(Uint128Low64(lhs) << (amount - 64), 0);
 #endif
 }
 
@@ -948,30 +948,30 @@ inline uint128_t operator>>(uint128_t lhs, int amount) {
   // special-casing.
   if (amount < 64) {
     if (amount != 0) {
-      return MakeUint128_t(Uint128_tHigh64(lhs) >> amount,
-                         (Uint128_tLow64(lhs) >> amount) |
-                             (Uint128_tHigh64(lhs) << (64 - amount)));
+      return MakeUint128(Uint128High64(lhs) >> amount,
+                         (Uint128Low64(lhs) >> amount) |
+                             (Uint128High64(lhs) << (64 - amount)));
     }
     return lhs;
   }
-  return MakeUint128_t(0, Uint128_tHigh64(lhs) >> (amount - 64));
+  return MakeUint128(0, Uint128High64(lhs) >> (amount - 64));
 #endif
 }
 
 inline uint128_t operator+(uint128_t lhs, uint128_t rhs) {
-  uint128_t result = MakeUint128_t(Uint128_tHigh64(lhs) + Uint128_tHigh64(rhs),
-                               Uint128_tLow64(lhs) + Uint128_tLow64(rhs));
-  if (Uint128_tLow64(result) < Uint128_tLow64(lhs)) {  // check for carry
-    return MakeUint128_t(Uint128_tHigh64(result) + 1, Uint128_tLow64(result));
+  uint128_t result = MakeUint128(Uint128High64(lhs) + Uint128High64(rhs),
+                               Uint128Low64(lhs) + Uint128Low64(rhs));
+  if (Uint128Low64(result) < Uint128Low64(lhs)) {  // check for carry
+    return MakeUint128(Uint128High64(result) + 1, Uint128Low64(result));
   }
   return result;
 }
 
 inline uint128_t operator-(uint128_t lhs, uint128_t rhs) {
-  uint128_t result = MakeUint128_t(Uint128_tHigh64(lhs) - Uint128_tHigh64(rhs),
-                               Uint128_tLow64(lhs) - Uint128_tLow64(rhs));
-  if (Uint128_tLow64(lhs) < Uint128_tLow64(rhs)) {  // check for carry
-    return MakeUint128_t(Uint128_tHigh64(result) - 1, Uint128_tLow64(result));
+  uint128_t result = MakeUint128(Uint128High64(lhs) - Uint128High64(rhs),
+                               Uint128Low64(lhs) - Uint128Low64(rhs));
+  if (Uint128Low64(lhs) < Uint128Low64(rhs)) {  // check for carry
+    return MakeUint128(Uint128High64(result) - 1, Uint128Low64(result));
   }
   return result;
 }
@@ -984,18 +984,18 @@ inline uint128_t operator*(uint128_t lhs, uint128_t rhs) {
          static_cast<unsigned __int128_t>(rhs);
 #elif defined(_MSC_VER) && defined(_M_X64)
   uint64_t carry;
-  uint64_t low = _umul128(Uint128_tLow64(lhs), Uint128_tLow64(rhs), &carry);
-  return MakeUint128_t(Uint128_tLow64(lhs) * Uint128_tHigh64(rhs) +
-                         Uint128_tHigh64(lhs) * Uint128_tLow64(rhs) + carry,
+  uint64_t low = _umul128(Uint128Low64(lhs), Uint128Low64(rhs), &carry);
+  return MakeUint128(Uint128Low64(lhs) * Uint128High64(rhs) +
+                         Uint128High64(lhs) * Uint128Low64(rhs) + carry,
                      low);
 #else   // ABSL_HAVE_INTRINSIC128
-  uint64_t a32 = Uint128_tLow64(lhs) >> 32;
-  uint64_t a00 = Uint128_tLow64(lhs) & 0xffffffff;
-  uint64_t b32 = Uint128_tLow64(rhs) >> 32;
-  uint64_t b00 = Uint128_tLow64(rhs) & 0xffffffff;
+  uint64_t a32 = Uint128Low64(lhs) >> 32;
+  uint64_t a00 = Uint128Low64(lhs) & 0xffffffff;
+  uint64_t b32 = Uint128Low64(rhs) >> 32;
+  uint64_t b00 = Uint128Low64(rhs) & 0xffffffff;
   uint128_t result =
-      MakeUint128_t(Uint128_tHigh64(lhs) * Uint128_tLow64(rhs) +
-                      Uint128_tLow64(lhs) * Uint128_tHigh64(rhs) + a32 * b32,
+      MakeUint128(Uint128High64(lhs) * Uint128Low64(rhs) +
+                      Uint128Low64(lhs) * Uint128High64(rhs) + a32 * b32,
                   a00 * b00);
   result += uint128_t(a32 * b00) << 32;
   result += uint128_t(a00 * b32) << 32;
